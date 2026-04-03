@@ -7,7 +7,6 @@ import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { LemmyHttp } from 'lemmy-js-client';
-import path from 'path';
 
 const app = express();
 
@@ -34,11 +33,10 @@ async function loginLemmy(): Promise<string> {
             throw new Error('No JWT returned');
         }
         lemmyClient.setHeaders({ Authorization: `Bearer ${res.jwt}` });
+        console.log('Logged in');
         return res.jwt;
     } catch (error) {
         console.error('Login error:', (error as Error).message);
-        console.log('Username:', process.env.LEMMY_USERNAME);
-        console.log('Password:', process.env.LEMMY_PASSWORD);
         throw new Error(`Lemmy login failed: ${(error as Error).message}`);
     }
 }
@@ -129,14 +127,21 @@ app.post('/fetch', async (req: Request, res: Response): Promise<void> => {
 app.post('/create-community', async (req: Request, res: Response): Promise<void> => {
     const { redditUrl }: { redditUrl: string } = req.body;
 
+    console.log('Raw redditUrl received:', redditUrl);
+
     try {
         // Login to Lemmy
         const jwt = await loginLemmy();
 
-        // Create community from Reddit URL
-        const communityId = await createLemmyCommunity(jwt, redditUrl, `Imported from ${redditUrl}`, 'Reddit to Lemmy import');
+        // Extract subreddit name for response
+        const subredditMatch = redditUrl.match(/\/r\/([^\/]+)/);
+        const subredditName = subredditMatch ? subredditMatch[1].toLowerCase().replace(/[^a-z0-9_-]/g, '_') : 'unknown';
+        const communityName = `${subredditName}_lemmy`;
 
-        res.json({ success: true, communityId });
+        // Create community from Reddit URL
+        const communityId = await createLemmyCommunity(jwt, redditUrl, redditUrl, '');
+
+        res.json({ success: true, communityId, communityName });
     } catch (error) {
         res.status(500).json({ error: (error as Error).message });
     }

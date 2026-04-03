@@ -20,11 +20,17 @@
 
     <script>
         async function createCommunity() {
-            const subreddit = document.getElementById('subreddit').value;
+            const input = document.getElementById('subreddit').value;
             const output = document.getElementById('output');
             output.innerHTML = "Creating community...";
 
-            const redditUrl = `https://www.reddit.com/r/${subreddit}`;
+            // Handle both full URLs and subreddit names
+            let redditUrl;
+            if (input.startsWith('http')) {
+                redditUrl = input;
+            } else {
+                redditUrl = `https://www.reddit.com/r/${input}`;
+            }
 
             try {
                 const res = await fetch('/create-community', {
@@ -40,7 +46,8 @@
 
                 const data = await res.json();
                 if (data.success) {
-                    const communityLink = `https://lemmy.world/c/${subreddit}_lemmy`;
+                    const subreddit = input.startsWith('http') ? input.match(/\/r\/([^\/]+)/)?.[1] : input;
+                    const communityLink = `https://thelemmy.club/c/${subreddit}_lemmy`;
                     output.innerHTML = `<p>Community created! <a href="${communityLink}" target="_blank">${communityLink}</a></p>`;
                 } else {
                     output.innerHTML = `<p>Error: ${data.error}</p>`;
