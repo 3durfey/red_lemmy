@@ -6,8 +6,9 @@ import { lemmyClient } from "./client.js";
 
 /**
  * Logs into Lemmy using credentials from environment variables.
- * @returns {Promise<string>} JWT token for authenticated requests.
- * @throws {Error} If login fails.
+ *
+ * @returns JWT token used for authenticated API requests.
+ * @throws Error when credentials are missing or authentication fails.
  */
 export async function loginLemmy(): Promise<string> {
   try {

@@ -48,10 +48,58 @@
     <div id="output"></div>
 
     <script>
+      function clearOutput(output) {
+        output.replaceChildren();
+      }
+
+      function appendParagraph(output, text, strongText) {
+        const p = document.createElement("p");
+        if (strongText) {
+          const strong = document.createElement("strong");
+          strong.textContent = strongText;
+          p.appendChild(strong);
+        } else {
+          p.textContent = text;
+        }
+        output.appendChild(p);
+      }
+
+      function renderError(output, message) {
+        clearOutput(output);
+        appendParagraph(output, `Failed to create community: ${message}`);
+      }
+
+      function renderSuccess(output, data) {
+        clearOutput(output);
+
+        const communitySlug = data.communityName || "";
+        const communityLink = data.communityUrl || `/c/${communitySlug}`;
+        const communityTitle = data.communityTitle || communitySlug;
+        const federatedName = data.federatedName || communitySlug;
+        const postMessage =
+          data.postImported && Number.isInteger(data.importedCount)
+            ? `Imported ${data.importedCount} post(s) from the last 24 hours.`
+            : data.message || "Community created, but no post was imported.";
+
+        appendParagraph(output, "Community created!");
+        appendParagraph(output, "", communityTitle);
+
+        const linkParagraph = document.createElement("p");
+        const link = document.createElement("a");
+        link.href = communityLink;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = federatedName;
+        linkParagraph.appendChild(link);
+        output.appendChild(linkParagraph);
+
+        appendParagraph(output, postMessage);
+      }
+
       async function createCommunity() {
         const input = document.getElementById("subreddit").value;
         const output = document.getElementById("output");
-        output.innerHTML = "Creating community...";
+        output.textContent = "Creating community...";
 
         // Handle both full URLs and subreddit names
         let redditUrl;
@@ -79,26 +127,12 @@
 
           const data = await res.json();
           if (data.success) {
-            const communitySlug = data.communityName || "";
-            const communityLink = data.communityUrl || `/c/${communitySlug}`;
-            const communityTitle = data.communityTitle || communitySlug;
-            const federatedName = data.federatedName || communitySlug;
-            const postText =
-              data.postImported && Number.isInteger(data.importedCount)
-                ? `<p>Imported ${data.importedCount} post(s) from the last 24 hours.</p>`
-                : `<p>${data.message || "Community created, but no post was imported."}</p>`;
-
-            output.innerHTML = `
-                        <p>Community created!</p>
-                        <p><strong>${communityTitle}</strong></p>
-                        <p><a href="${communityLink}" target="_blank">${federatedName}</a></p>
-                        ${postText}
-                    `;
+            renderSuccess(output, data);
           } else {
-            output.innerHTML = `<p>Error: ${data.error}</p>`;
+            renderError(output, data.error || "Unknown error");
           }
         } catch (error) {
-          output.innerHTML = `<p>Failed to create community: ${error.message}</p>`;
+          renderError(output, error.message);
         }
       }
     </script>

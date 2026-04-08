@@ -3,6 +3,7 @@
  */
 
 import { lemmyClient } from "./client.js";
+import { buildCommunityName } from "./buildCommunityName.js";
 import "dotenv/config";
 
 type CreatedCommunity = {
@@ -11,40 +12,21 @@ type CreatedCommunity = {
   title: string;
 };
 
-function buildCommunityName(subredditName: string): string {
-  const MAX_LEN = 20;
-  const clean = subredditName
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-  const base = clean || "reddit";
-  return base.slice(0, MAX_LEN);
-}
-
 /**
- * Creates a new community on Lemmy based on Reddit subreddit URL.
- * @param {string} jwt - JWT token for authentication.
- * @param {string} redditUrl - Reddit URL to extract subreddit name from.
- * @param {string} title - Title for the new community.
- * @param {string} description - Description for the new community.
- * @returns {Promise<CreatedCommunity>} Created community info.
- * @throws {Error} If community creation fails.
+ * Creates a new community on Lemmy from a normalized subreddit name.
+ *
+ * @param subredditName Normalized subreddit name used to derive the community slug.
+ * @param title Community display title.
+ * @param description Community description text.
+ * @returns Created community metadata.
+ * @throws Error when community creation fails.
  */
 export async function createLemmyCommunity(
-  jwt: string,
-  redditUrl: string,
+  subredditName: string,
   title: string,
   description: string,
 ): Promise<CreatedCommunity> {
-  const subredditMatch = redditUrl.match(/\/r\/([^\/]+)/);
-  const subredditName = subredditMatch ? subredditMatch[1] : "unknown";
   const communityName = buildCommunityName(subredditName);
-
-  console.log("Subreddit URL:", redditUrl);
-  console.log("Extracted subreddit name:", subredditName);
-  console.log("Final community name:", communityName);
 
   try {
     const res = await lemmyClient.createCommunity({

@@ -11,4 +11,5 @@ if (!lemmyBaseUrl) {
   throw new Error("Missing required environment variable: LEMMY_BASE_URL");
 }
 
+/** Shared Lemmy API client configured from environment variables. */
 export const lemmyClient = new LemmyHttp(lemmyBaseUrl);
