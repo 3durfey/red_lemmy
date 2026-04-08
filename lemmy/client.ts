@@ -2,6 +2,13 @@
  * @fileoverview Shared Lemmy HTTP client instance.
  */
 
-import { LemmyHttp } from 'lemmy-js-client';
+import "dotenv/config";
+import { LemmyHttp } from "lemmy-js-client";
 
-export const lemmyClient = new LemmyHttp(process.env.LEMMY_BASE_URL!);
+const lemmyBaseUrl = process.env.LEMMY_BASE_URL;
+
+if (!lemmyBaseUrl) {
+  throw new Error("Missing required environment variable: LEMMY_BASE_URL");
+}
+
+export const lemmyClient = new LemmyHttp(lemmyBaseUrl);

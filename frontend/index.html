@@ -1,61 +1,106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Reddit-to-Lemmy Extractor</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 900px; margin: auto; padding: 20px; background: #1a1a1a; color: #eee; }
-        input { width: 70%; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: white; }
-        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        pre { background: #000; padding: 20px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; color: #00ff41; }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        max-width: 900px;
+        margin: auto;
+        padding: 20px;
+        background: #1a1a1a;
+        color: #eee;
+      }
+      input {
+        width: 70%;
+        padding: 12px;
+        border-radius: 5px;
+        border: 1px solid #444;
+        background: #2a2a2a;
+        color: white;
+      }
+      button {
+        padding: 12px 24px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      pre {
+        background: #000;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        overflow-x: auto;
+        color: #00ff41;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Reddit to Lemmy Community Creator</h1>
-    <div style="margin-bottom: 20px;">
-        <input type="text" id="subreddit" placeholder="technology">
-        <button onclick="createCommunity()">Create Lemmy Community</button>
+    <div style="margin-bottom: 20px">
+      <input type="text" id="subreddit" placeholder="technology" />
+      <button onclick="createCommunity()">Create Lemmy Community</button>
     </div>
     <div id="output"></div>
 
     <script>
-        async function createCommunity() {
-            const input = document.getElementById('subreddit').value;
-            const output = document.getElementById('output');
-            output.innerHTML = "Creating community...";
+      async function createCommunity() {
+        const input = document.getElementById("subreddit").value;
+        const output = document.getElementById("output");
+        output.innerHTML = "Creating community...";
 
-            // Handle both full URLs and subreddit names
-            let redditUrl;
-            if (input.startsWith('http')) {
-                redditUrl = input;
-            } else {
-                redditUrl = `https://www.reddit.com/r/${input}`;
-            }
-
-            try {
-                const res = await fetch('/create-community', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ redditUrl })
-                });
-
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(`HTTP ${res.status}: ${res.statusText} - ${text}`);
-                }
-
-                const data = await res.json();
-                if (data.success) {
-                    const subreddit = input.startsWith('http') ? input.match(/\/r\/([^\/]+)/)?.[1] : input;
-                    const communityLink = `https://thelemmy.club/c/${subreddit}_lemmy`;
-                    output.innerHTML = `<p>Community created! <a href="${communityLink}" target="_blank">${communityLink}</a></p>`;
-                } else {
-                    output.innerHTML = `<p>Error: ${data.error}</p>`;
-                }
-            } catch (error) {
-                output.innerHTML = `<p>Failed to create community: ${error.message}</p>`;
-            }
+        // Handle both full URLs and subreddit names
+        let redditUrl;
+        if (input.startsWith("http")) {
+          redditUrl = input;
+        } else {
+          redditUrl = `https://www.reddit.com/r/${input}`;
         }
+
+        try {
+          const res = await fetch("/create-community", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              redditUrl,
+              importMode: "top",
+              topWindow: "day",
+            }),
+          });
+
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`HTTP ${res.status}: ${res.statusText} - ${text}`);
+          }
+
+          const data = await res.json();
+          if (data.success) {
+            const communitySlug = data.communityName || "";
+            const communityLink = data.communityUrl || `/c/${communitySlug}`;
+            const communityTitle = data.communityTitle || communitySlug;
+            const federatedName = data.federatedName || communitySlug;
+            const postText =
+              data.postImported && Number.isInteger(data.importedCount)
+                ? `<p>Imported ${data.importedCount} post(s) from the last 24 hours.</p>`
+                : `<p>${data.message || "Community created, but no post was imported."}</p>`;
+
+            output.innerHTML = `
+                        <p>Community created!</p>
+                        <p><strong>${communityTitle}</strong></p>
+                        <p><a href="${communityLink}" target="_blank">${federatedName}</a></p>
+                        ${postText}
+                    `;
+          } else {
+            output.innerHTML = `<p>Error: ${data.error}</p>`;
+          }
+        } catch (error) {
+          output.innerHTML = `<p>Failed to create community: ${error.message}</p>`;
+        }
+      }
     </script>
-</body>
+  </body>
 </html>

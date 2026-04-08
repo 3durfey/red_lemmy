@@ -19,7 +19,7 @@ export async function createLemmyPost(jwt: string, communityId: number, title: s
         const res = await lemmyClient.createPost({
             name: title,
             body,
-            url,
+            ...(url ? { url } : {}),
             community_id: communityId
         });
         return res.post_view.post;
