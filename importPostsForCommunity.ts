@@ -1,4 +1,4 @@
-import { createLemmyPost } from "../lemmy/createPost.js";
+import { createLemmyPost } from "./createPost.js";
 import { buildLemmyPostTitle } from "./buildLemmyPostTitle.js";
 import { uploadToPictrs } from "./uploadToPictrs.js";
 import { ImportResult, RedditPost } from "./types.js";

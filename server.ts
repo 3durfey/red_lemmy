@@ -5,14 +5,16 @@
 
 import "dotenv/config";
 import express, { Request, Response } from "express";
-import { loginLemmy } from "./lemmy/login.js";
-import { createLemmyCommunity } from "./lemmy/createCommunity.js";
-import { extractSubredditName } from "./server/extractSubredditName.js";
-import { getLemmyHost } from "./server/getLemmyHost.js";
-import { fetchPostsFromLast24Hours } from "./server/fetchPostsFromLast24Hours.js";
-import { importPostsForCommunity } from "./server/importPostsForCommunity.js";
-import { normalizeRedditSubredditUrl } from "./server/normalizeRedditUrl.js";
-import { FeedSort, TopWindow } from "./server/types.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import { loginLemmy } from "./login.js";
+import { createLemmyCommunity } from "./createCommunity.js";
+import { extractSubredditName } from "./extractSubredditName.js";
+import { getLemmyHost } from "./getLemmyHost.js";
+import { fetchPostsFromLast24Hours } from "./fetchPostsFromLast24Hours.js";
+import { importPostsForCommunity } from "./importPostsForCommunity.js";
+import { normalizeRedditSubredditUrl } from "./normalizeRedditUrl.js";
+import { FeedSort, TopWindow } from "./types.js";
 
 const app = express();
 const VALID_IMPORT_MODES: FeedSort[] = ["new", "top"];
@@ -24,9 +26,16 @@ const VALID_TOP_WINDOWS: TopWindow[] = [
   "year",
   "all",
 ];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot =
+  path.basename(__dirname) === "dist" ? path.dirname(__dirname) : __dirname;
+const indexHtmlPath = path.join(projectRoot, "index.html");
 
 app.use(express.json());
-app.use(express.static("frontend"));
+app.get("/", (_req: Request, res: Response) => {
+  res.sendFile(indexHtmlPath);
+});
 
 /**
  * @route POST /create-community
@@ -53,9 +62,7 @@ app.post(
       const normalizedRedditUrl = normalizeRedditSubredditUrl(redditUrl);
       const subreddit = extractSubredditName(normalizedRedditUrl);
       const jwt = await loginLemmy();
-      const sort: FeedSort = VALID_IMPORT_MODES.includes(
-        importMode as FeedSort,
-      )
+      const sort: FeedSort = VALID_IMPORT_MODES.includes(importMode as FeedSort)
         ? (importMode as FeedSort)
         : "new";
       const timeWindow: TopWindow = VALID_TOP_WINDOWS.includes(
@@ -114,7 +121,9 @@ app.post(
       });
     } catch (error) {
       const message = (error as Error).message;
-      const status = /supported|subreddit name|\/r\//i.test(message) ? 400 : 500;
+      const status = /supported|subreddit name|\/r\//i.test(message)
+        ? 400
+        : 500;
       res.status(status).json({ error: message });
     }
   },
