@@ -1,5 +1,5 @@
 /**
- * @fileoverview Shared Lemmy HTTP client instance.
+ * @fileoverview Shared Lemmy API client bootstrap.
  */
 
 import "dotenv/config";

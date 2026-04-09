@@ -12,6 +12,6 @@
     "rootDir": "./",
     "resolveJsonModule": true
   },
-  "include": ["*.ts", "server/**/*.ts", "lemmy/**/*.ts"],
+  "include": ["*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,10 +1,9 @@
 /**
- * @fileoverview Helpers for uploading Reddit-hosted images to Lemmy pictrs.
+ * @fileoverview Pictrs upload helper for Reddit-hosted images.
  */
 
 import axios from "axios";
 import FormData from "form-data";
-import "dotenv/config";
 
 /**
  * Downloads an image from a URL and uploads it to Lemmy's pictrs host.

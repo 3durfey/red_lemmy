@@ -1,8 +1,9 @@
 /**
- * @fileoverview Create post function for Lemmy.
+ * @fileoverview Lemmy post creation helper.
  */
 
 import { lemmyClient } from "./client.js";
+import { LemmyCreatedPost } from "./types.js";
 
 /**
  * Creates a new post on Lemmy.
@@ -19,7 +20,7 @@ export async function createLemmyPost(
   title: string,
   body: string,
   url: string,
-): Promise<any> {
+): Promise<LemmyCreatedPost> {
   try {
     const res = await lemmyClient.createPost({
       name: title,

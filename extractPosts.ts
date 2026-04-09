@@ -2,7 +2,11 @@
  * @fileoverview Helpers for normalizing Reddit listing payloads.
  */
 
-import { RedditPost } from "./types.js";
+import {
+  RedditListingPayload,
+  RedditPost,
+  RedditRawPostWithRequiredFields,
+} from "./types.js";
 
 /**
  * Extracts normalized post data from a Reddit listing response.
@@ -18,7 +22,7 @@ import { RedditPost } from "./types.js";
  * @param redditData Reddit JSON payload from the `.json` feed endpoint.
  * @returns Normalized list of posts ready for import.
  */
-export function extractPosts(redditData: any): RedditPost[] {
+export function extractPosts(redditData: RedditListingPayload): RedditPost[] {
   const listing = Array.isArray(redditData) ? redditData[0] : redditData;
   const children = listing?.data?.children;
 
@@ -32,9 +36,12 @@ export function extractPosts(redditData: any): RedditPost[] {
   const REDDIT_SHORT = /^https?:\/\/redd\.it\//i;
 
   return children
-    .map((child: any) => child?.data)
-    .filter((post: any) => post?.title)
-    .map((post: any) => {
+    .map((child) => child?.data)
+    .filter(
+      (post): post is RedditRawPostWithRequiredFields =>
+        typeof post?.title === "string" && typeof post?.id === "string",
+    )
+    .map((post) => {
       const rawUrl: string = post.url ?? "";
       const isRedditImage = REDDIT_IMAGE_CDN.test(rawUrl);
       const isRedditLink =
@@ -44,6 +51,7 @@ export function extractPosts(redditData: any): RedditPost[] {
       const url = isRedditLink ? "" : rawUrl;
       const imageUrl = isRedditImage ? rawUrl : "";
       return {
+        redditId: post.id,
         title: post.title,
         selftext: post.selftext ?? "",
         url,

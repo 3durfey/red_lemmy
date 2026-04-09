@@ -40,3 +40,8 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Local app data
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

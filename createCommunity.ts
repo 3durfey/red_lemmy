@@ -1,10 +1,9 @@
 /**
- * @fileoverview Create community function for Lemmy.
+ * @fileoverview Lemmy community creation helper.
  */
 
 import { lemmyClient } from "./client.js";
 import { buildCommunityName } from "./buildCommunityName.js";
-import "dotenv/config";
 
 type CreatedCommunity = {
   id: number;

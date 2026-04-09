@@ -15,10 +15,14 @@ const REDDIT_HOSTS = new Set(["reddit.com", "www.reddit.com", "old.reddit.com"])
  */
 export function normalizeRedditSubredditUrl(input: string): string {
   const trimmed = input.trim();
-  const subredditMatch = trimmed.match(/(?:^|\/)r\/([^/?#]+)/i);
+  const pathSubredditMatch = trimmed.match(/^\/?r\/([^/?#]+)/i);
 
-  if (subredditMatch?.[1]) {
-    return `https://www.reddit.com/r/${subredditMatch[1]}`;
+  if (pathSubredditMatch?.[1]) {
+    return `https://www.reddit.com/r/${pathSubredditMatch[1]}`;
+  }
+
+  if (/^[A-Za-z0-9_]+$/.test(trimmed)) {
+    return `https://www.reddit.com/r/${trimmed}`;
   }
 
   try {
@@ -28,14 +32,16 @@ export function normalizeRedditSubredditUrl(input: string): string {
     if (!REDDIT_HOSTS.has(hostname)) {
       throw new Error("Only reddit.com subreddit URLs are supported.");
     }
-  } catch {
-    if (!/^[A-Za-z0-9_]+$/.test(trimmed)) {
-      throw new Error("Input must be a subreddit name or Reddit subreddit URL.");
+    const subredditMatch = url.pathname.match(/^\/r\/([^/?#]+)/i);
+    if (!subredditMatch?.[1]) {
+      throw new Error("Input must include a /r/<subreddit> path.");
     }
 
-    return `https://www.reddit.com/r/${trimmed}`;
+    return `https://www.reddit.com/r/${subredditMatch[1]}`;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Input must be a subreddit name or Reddit subreddit URL.");
   }
-
-  throw new Error("Input must include a /r/<subreddit> path.");
 }
-

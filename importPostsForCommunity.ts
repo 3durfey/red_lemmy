@@ -1,7 +1,13 @@
 import { createLemmyPost } from "./createPost.js";
-import { buildLemmyPostTitle } from "./buildLemmyPostTitle.js";
-import { uploadToPictrs } from "./uploadToPictrs.js";
+import { hasImportedPost, markPostImported } from "./importedPostsDb.js";
+import { prepareLemmyPostInput } from "./prepareLemmyPostInput.js";
 import { ImportResult, RedditPost } from "./types.js";
+
+type ImportProgress = {
+  currentPostTitle?: string;
+  processedPosts: number;
+  totalPosts: number;
+};
 
 /**
  * Imports a batch of Reddit posts into a Lemmy community.
@@ -13,50 +19,85 @@ import { ImportResult, RedditPost } from "./types.js";
  * @param jwt Lemmy auth token.
  * @param communityId Target Lemmy community id.
  * @param posts Normalized posts to import.
- * @returns Import summary with count and latest imported timestamp.
+ * @param onProgress Optional callback used by the progress UI.
+ * @returns Import summary with imported post count.
  */
 export async function importPostsForCommunity(
   jwt: string,
   communityId: number,
   posts: RedditPost[],
+  onProgress?: (progress: ImportProgress) => void,
 ): Promise<ImportResult> {
+  const totalPosts = posts.length;
+
   if (posts.length === 0) {
-    return { importedCount: 0, latestImportedUtc: 0 };
+    return { importedCount: 0 };
   }
 
   let importedCount = 0;
-  let latestImportedUtc = 0;
+  let processedPosts = 0;
 
   for (const post of posts) {
-    const title = buildLemmyPostTitle(post.title, post.author);
+    const progressTitle = post.title;
+    onProgress?.({
+      currentPostTitle: progressTitle,
+      processedPosts,
+      totalPosts,
+    });
 
-    // Keep only non-Reddit external URLs.
-    let postUrl = post.url;
-
-    // Try to re-host Reddit photos on Lemmy's pictrs to avoid hotlink blocking.
-    if (post.imageUrl) {
-      const pictrsUrl = await uploadToPictrs(post.imageUrl, jwt);
-      if (pictrsUrl) postUrl = pictrsUrl;
+    // Skip duplicate work before any media upload or Lemmy API call.
+    if (hasImportedPost(post.redditId, communityId)) {
+      processedPosts += 1;
+      onProgress?.({
+        currentPostTitle: progressTitle,
+        processedPosts,
+        totalPosts,
+      });
+      continue;
     }
 
-    // Skip Reddit-only link posts when no external URL or rehosted image is available.
-    if (!postUrl && !post.selftext.trim()) {
+    const preparedPost = await prepareLemmyPostInput(post, jwt);
+
+    if (!preparedPost) {
+      processedPosts += 1;
+      onProgress?.({
+        currentPostTitle: progressTitle,
+        processedPosts,
+        totalPosts,
+      });
       continue;
     }
 
     try {
-      await createLemmyPost(communityId, title, post.selftext, postUrl);
+      const createdPost = await createLemmyPost(
+        communityId,
+        preparedPost.title,
+        preparedPost.body,
+        preparedPost.url,
+      );
+      markPostImported(
+        post.redditId,
+        communityId,
+        createdPost?.id ?? null,
+      );
       importedCount += 1;
-      latestImportedUtc = Math.max(latestImportedUtc, post.createdUtc);
     } catch (error) {
       console.error("Skipping failed post import:", {
-        title,
+        redditId: post.redditId,
+        title: preparedPost.title,
         author: post.author,
         createdUtc: post.createdUtc,
         error: (error as Error).message,
       });
+    } finally {
+      processedPosts += 1;
+      onProgress?.({
+        currentPostTitle: progressTitle,
+        processedPosts,
+        totalPosts,
+      });
     }
   }
 
-  return { importedCount, latestImportedUtc };
+  return { importedCount };
 }

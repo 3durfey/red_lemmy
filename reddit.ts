@@ -1,8 +1,9 @@
 /**
- * @fileoverview Reddit fetch helper.
+ * @fileoverview Reddit JSON fetch helper.
  */
 
 import axios from "axios";
+import { RedditListingPayload } from "./types.js";
 
 const MOBILE_UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36";
@@ -20,7 +21,7 @@ const ALLOWED_REDDIT_HOSTS = new Set([
  * @returns Reddit JSON payload.
  * @throws Error when request fails.
  */
-export async function fetchReddit(url: string): Promise<any> {
+export async function fetchReddit(url: string): Promise<RedditListingPayload> {
   try {
     const parsed = new URL(url);
     if (!ALLOWED_REDDIT_HOSTS.has(parsed.hostname.toLowerCase())) {
@@ -37,7 +38,7 @@ export async function fetchReddit(url: string): Promise<any> {
     throw new Error("A valid Reddit URL is required.");
   }
 
-  const response = await axios.get(url, {
+  const response = await axios.get<RedditListingPayload>(url, {
     headers: { "User-Agent": MOBILE_UA },
   });
   return response.data;

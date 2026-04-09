@@ -1,5 +1,5 @@
 /**
- * @fileoverview Login function for Lemmy.
+ * @fileoverview Lemmy authentication helper.
  */
 
 import { lemmyClient } from "./client.js";

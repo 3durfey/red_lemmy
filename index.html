@@ -3,138 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <title>Reddit-to-Lemmy Extractor</title>
-    <style>
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        max-width: 900px;
-        margin: auto;
-        padding: 20px;
-        background: #1a1a1a;
-        color: #eee;
-      }
-      input {
-        width: 70%;
-        padding: 12px;
-        border-radius: 5px;
-        border: 1px solid #444;
-        background: #2a2a2a;
-        color: white;
-      }
-      button {
-        padding: 12px 24px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      pre {
-        background: #000;
-        padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #333;
-        overflow-x: auto;
-        color: #00ff41;
-      }
-    </style>
+    <link rel="stylesheet" href="/static/style.css" />
   </head>
   <body>
-    <h1>Reddit to Lemmy Community Creator</h1>
-    <div style="margin-bottom: 20px">
-      <input type="text" id="subreddit" placeholder="technology" />
-      <button onclick="createCommunity()">Create Lemmy Community</button>
+    <div class="color-breath"></div>
+    <!-- Single-page UI for community creation, progress polling, and tracked-community status. -->
+    <div class="layout">
+      <main>
+        <h1>Reddit to Lemmy Community Creator</h1>
+        <section class="panel">
+          <form id="create-form">
+            <div class="input-row">
+              <input
+                type="text"
+                id="subreddit"
+                placeholder="https://www.reddit.com/r/Ooer/"
+              />
+              <button id="create-button" type="submit">
+                Create Lemmy Community
+              </button>
+            </div>
+          </form>
+
+          <section id="progress-shell" class="progress-shell">
+            <div id="progress-copy" class="progress-copy">
+              Creating community...
+            </div>
+            <progress id="progress-bar" value="0" max="100"></progress>
+            <div id="progress-stats" class="progress-stats">0 / 100 posts</div>
+          </section>
+          <div id="output"></div>
+        </section>
+      </main>
+      <aside>
+        <section class="panel">
+          <h2>Tracked Subreddits</h2>
+          <div id="community-list-status">Loading communities...</div>
+          <ul id="community-list" class="community-list"></ul>
+        </section>
+      </aside>
     </div>
-    <div id="output"></div>
-
-    <script>
-      function clearOutput(output) {
-        output.replaceChildren();
-      }
-
-      function appendParagraph(output, text, strongText) {
-        const p = document.createElement("p");
-        if (strongText) {
-          const strong = document.createElement("strong");
-          strong.textContent = strongText;
-          p.appendChild(strong);
-        } else {
-          p.textContent = text;
-        }
-        output.appendChild(p);
-      }
-
-      function renderError(output, message) {
-        clearOutput(output);
-        appendParagraph(output, `Failed to create community: ${message}`);
-      }
-
-      function renderSuccess(output, data) {
-        clearOutput(output);
-
-        const communitySlug = data.communityName || "";
-        const communityLink = data.communityUrl || `/c/${communitySlug}`;
-        const communityTitle = data.communityTitle || communitySlug;
-        const federatedName = data.federatedName || communitySlug;
-        const postMessage =
-          data.postImported && Number.isInteger(data.importedCount)
-            ? `Imported ${data.importedCount} post(s) from the last 24 hours.`
-            : data.message || "Community created, but no post was imported.";
-
-        appendParagraph(output, "Community created!");
-        appendParagraph(output, "", communityTitle);
-
-        const linkParagraph = document.createElement("p");
-        const link = document.createElement("a");
-        link.href = communityLink;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.textContent = federatedName;
-        linkParagraph.appendChild(link);
-        output.appendChild(linkParagraph);
-
-        appendParagraph(output, postMessage);
-      }
-
-      async function createCommunity() {
-        const input = document.getElementById("subreddit").value;
-        const output = document.getElementById("output");
-        output.textContent = "Creating community...";
-
-        // Handle both full URLs and subreddit names
-        let redditUrl;
-        if (input.startsWith("http")) {
-          redditUrl = input;
-        } else {
-          redditUrl = `https://www.reddit.com/r/${input}`;
-        }
-
-        try {
-          const res = await fetch("/create-community", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              redditUrl,
-              importMode: "top",
-              topWindow: "day",
-            }),
-          });
-
-          if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`HTTP ${res.status}: ${res.statusText} - ${text}`);
-          }
-
-          const data = await res.json();
-          if (data.success) {
-            renderSuccess(output, data);
-          } else {
-            renderError(output, data.error || "Unknown error");
-          }
-        } catch (error) {
-          renderError(output, error.message);
-        }
-      }
-    </script>
+    <script src="/static/app.js" defer></script>
   </body>
 </html>
