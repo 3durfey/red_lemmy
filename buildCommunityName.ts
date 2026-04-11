@@ -11,7 +11,6 @@
 export function buildCommunityName(subredditName: string): string {
   const MAX_LEN = 20;
   const clean = subredditName
-    .toLowerCase()
     .replace(/[^a-z0-9_]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");

@@ -28,7 +28,11 @@ body {
   padding: 56px 20px 32px;
   min-height: 100vh;
   position: relative;
-  background-size: 130% 130%, 120% 120%, 135% 135%, 100% 100%;
+  background-size:
+    130% 130%,
+    120% 120%,
+    135% 135%,
+    100% 100%;
   background:
     radial-gradient(
       circle at 16% 14%,
@@ -45,12 +49,7 @@ body {
       rgba(79, 141, 255, 0.1),
       transparent 26%
     ),
-    linear-gradient(
-      160deg,
-      var(--bg-deep),
-      var(--bg-mid) 50%,
-      #090909 100%
-    );
+    linear-gradient(160deg, var(--bg-deep), var(--bg-mid) 50%, #090909 100%);
   color: var(--text-main);
   overflow-x: hidden;
   animation: gradient-shift 28s ease-in-out infinite;
@@ -118,11 +117,7 @@ body::after {
   height: 340px;
   bottom: 40px;
   left: 6%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 95, 87, 0.18),
-    transparent 70%
-  );
+  background: radial-gradient(circle, rgba(255, 95, 87, 0.18), transparent 70%);
   animation-name: drift-south;
   animation-duration: 24s;
 }
@@ -292,6 +287,12 @@ progress::-moz-progress-bar {
   font-size: 0.92rem;
 }
 
+.community-sync-info {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .status-running {
   color: var(--blue-soft);
 }
@@ -383,5 +384,88 @@ p {
 
   .input-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 20px 12px 24px;
+  }
+
+  body::before {
+    width: 180px;
+    height: 180px;
+    top: 40px;
+    right: -24px;
+  }
+
+  body::after {
+    width: 220px;
+    height: 220px;
+    bottom: 16px;
+    left: -32px;
+  }
+
+  .color-breath {
+    inset: -22%;
+    opacity: 0.32;
+  }
+
+  .layout {
+    gap: 16px;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  h1 {
+    margin-bottom: 14px;
+    font-size: clamp(1.8rem, 11vw, 2.6rem);
+    line-height: 1;
+  }
+
+  h2 {
+    margin-bottom: 12px;
+  }
+
+  .input-row {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  input,
+  button {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  button {
+    width: 100%;
+    padding: 14px 18px;
+  }
+
+  .progress-shell {
+    margin-top: 14px;
+    padding: 14px;
+  }
+
+  .progress-stats,
+  .community-meta,
+  .community-status,
+  p {
+    font-size: 0.94rem;
+  }
+
+  .community-item {
+    padding: 12px 0;
+  }
+
+  .community-meta,
+  .community-status,
+  #output p,
+  #community-list-status {
+    overflow-wrap: anywhere;
   }
 }

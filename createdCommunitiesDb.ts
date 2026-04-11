@@ -14,6 +14,7 @@ export type StoredCommunity = {
   redditUrl: string;
   syncStatus: string;
   lastSyncedAt: string | null;
+  lastImportedCount: number | null;
   lastError: string | null;
 };
 
@@ -29,10 +30,20 @@ db.exec(`
     reddit_url TEXT NOT NULL,
     sync_status TEXT NOT NULL DEFAULT 'idle',
     last_synced_at TEXT,
+    last_imported_count INTEGER,
     last_error TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )
 `);
+
+// Migration: add last_imported_count to existing databases that predate this column.
+try {
+  db.exec(
+    `ALTER TABLE created_communities ADD COLUMN last_imported_count INTEGER`,
+  );
+} catch {
+  // Column already exists — nothing to do.
+}
 
 const storeCommunityStmt = db.prepare(`
   INSERT INTO created_communities (
@@ -62,6 +73,7 @@ const listCommunitiesStmt = db.prepare(`
     reddit_url AS redditUrl,
     sync_status AS syncStatus,
     last_synced_at AS lastSyncedAt,
+    last_imported_count AS lastImportedCount,
     last_error AS lastError
   FROM created_communities
   ORDER BY datetime(created_at) DESC, community_name ASC
@@ -80,6 +92,7 @@ const markSyncSucceededStmt = db.prepare(`
   SET
     sync_status = 'idle',
     last_synced_at = CURRENT_TIMESTAMP,
+    last_imported_count = ?,
     last_error = NULL
   WHERE community_name = ?
 `);
@@ -142,9 +155,13 @@ export function markCommunitySyncStarted(communityName: string): void {
  * Marks a tracked community as successfully synced.
  *
  * @param communityName Lemmy community slug.
+ * @param importedCount Number of posts imported in this cycle.
  */
-export function markCommunitySyncSucceeded(communityName: string): void {
-  markSyncSucceededStmt.run(communityName);
+export function markCommunitySyncSucceeded(
+  communityName: string,
+  importedCount: number,
+): void {
+  markSyncSucceededStmt.run(importedCount, communityName);
 }
 
 /**

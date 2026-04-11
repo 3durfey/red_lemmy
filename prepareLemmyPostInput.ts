@@ -21,6 +21,15 @@ type PreparedLemmyPostInput = {
  * @param jwt Lemmy JWT for pictrs uploads.
  * @returns Prepared post input or null when the post should be skipped.
  */
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export async function prepareLemmyPostInput(
   post: RedditPost,
   jwt: string,
@@ -32,6 +41,23 @@ export async function prepareLemmyPostInput(
     const pictrsUrl = await uploadToPictrs(post.imageUrl, jwt);
     if (pictrsUrl) {
       url = pictrsUrl;
+    }
+  }
+
+  // If the URL is not a valid http/https URL, only keep the post if a pictrs
+  // image was successfully uploaded. Otherwise drop it entirely.
+  if (url && !isValidHttpUrl(url)) {
+    if (!post.imageUrl) {
+      console.warn(`Dropping post ${post.redditId}: invalid URL and no image`);
+      return null;
+    }
+    // imageUrl was present but pictrs upload failed (url still the invalid one)
+    const hasPictrsUrl = url !== post.url;
+    if (!hasPictrsUrl) {
+      console.warn(
+        `Dropping post ${post.redditId}: invalid URL and pictrs upload failed`,
+      );
+      return null;
     }
   }
 

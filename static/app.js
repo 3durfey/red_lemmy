@@ -1,15 +1,38 @@
+/**
+ * @fileoverview Browser UI logic for the Reddit-to-Lemmy community creator.
+ *
+ * Handles community creation form submission, job progress polling,
+ * success/error rendering, and recurring community list refresh.
+ */
+
+/** setInterval handle for the community list auto-refresh, or null when not running. */
 let communitiesPollHandle = null;
 
+/**
+ * Escapes a string for safe insertion as text content (defense against XSS).
+ * @param {string} text - Raw text to escape.
+ * @returns {string} HTML-escaped string.
+ */
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text || "";
   return div.innerHTML;
 }
 
+/**
+ * Removes all child nodes from an output container.
+ * @param {HTMLElement} output - Container to clear.
+ */
 function clearOutput(output) {
   output.replaceChildren();
 }
 
+/**
+ * Appends a paragraph element to an output container.
+ * @param {HTMLElement} output - Container to append to.
+ * @param {string} text - Plain text content (used when strongText is omitted).
+ * @param {string} [strongText] - Bold text content; when provided, text is ignored.
+ */
 function appendParagraph(output, text, strongText) {
   const paragraph = document.createElement("p");
   if (strongText) {
@@ -22,19 +45,30 @@ function appendParagraph(output, text, strongText) {
   output.appendChild(paragraph);
 }
 
+/**
+ * Renders a user-facing error message into the output container.
+ * @param {HTMLElement} output - Container to render into.
+ * @param {string} message - Error detail text.
+ */
 function renderError(output, message) {
   clearOutput(output);
   appendParagraph(output, `Failed to create community: ${message}`);
 }
 
+/** Shows the progress bar section. */
 function showProgress() {
   document.getElementById("progress-shell").style.display = "block";
 }
 
+/** Hides the progress bar section. */
 function hideProgress() {
   document.getElementById("progress-shell").style.display = "none";
 }
 
+/**
+ * Updates the progress bar and status text from a polled job state object.
+ * @param {{ message?: string, processedPosts?: number, totalPosts?: number }} job
+ */
 function updateProgress(job) {
   const bar = document.getElementById("progress-bar");
   const copy = document.getElementById("progress-copy");
@@ -48,6 +82,11 @@ function updateProgress(job) {
   stats.textContent = `${Math.min(processedPosts, totalPosts)} / ${totalPosts} posts`;
 }
 
+/**
+ * Returns the display class name and label text for a community's sync state.
+ * @param {{ syncStatus: string, lastError?: string }} community
+ * @returns {{ className: string, text: string }}
+ */
 function formatSyncState(community) {
   if (community.syncStatus === "running") {
     return {
@@ -71,6 +110,11 @@ function formatSyncState(community) {
   };
 }
 
+/**
+ * Renders the community creation success state into the output container.
+ * @param {HTMLElement} output - Container to render into.
+ * @param {object} data - Completed job result payload from the server.
+ */
 function renderSuccess(output, data) {
   clearOutput(output);
 
@@ -97,11 +141,16 @@ function renderSuccess(output, data) {
 
   appendParagraph(
     output,
-    "Recurring updates will add the first 100 posts from new and the top 100 posts from the last 24 hours.",
+    "Recurring updates will add the first 100 posts from new and the top 100 posts from the last hour.",
   );
   appendParagraph(output, postMessage);
 }
 
+/**
+ * Renders the tracked community list into the sidebar.
+ * Clears and rebuilds the list on every call.
+ * @param {object[]} communities - Array of community records from GET /communities.
+ */
 function renderCommunityList(communities) {
   const status = document.getElementById("community-list-status");
   const list = document.getElementById("community-list");
@@ -136,13 +185,33 @@ function renderCommunityList(communities) {
     statusLine.dataset.communityStatus = community.communityName;
     statusLine.textContent = syncState.text;
 
+    const syncInfo = document.createElement("div");
+    syncInfo.className = "community-sync-info";
+    if (
+      community.lastImportedCount !== null &&
+      community.lastImportedCount !== undefined
+    ) {
+      const count = community.lastImportedCount;
+      syncInfo.textContent = `Last sync added ${count} post${count === 1 ? "" : "s"}`;
+    }
+
     item.appendChild(linkWrapper);
     item.appendChild(meta);
     item.appendChild(statusLine);
+    if (
+      community.lastImportedCount !== null &&
+      community.lastImportedCount !== undefined
+    ) {
+      item.appendChild(syncInfo);
+    }
     list.appendChild(item);
   }
 }
 
+/**
+ * Fetches the community list from the server and re-renders the sidebar.
+ * Displays an inline error message if the request fails.
+ */
 async function loadCommunities() {
   const status = document.getElementById("community-list-status");
 
@@ -162,6 +231,10 @@ async function loadCommunities() {
   }
 }
 
+/**
+ * Starts (or restarts) the 5-second community list polling interval.
+ * Clears any existing interval before starting a new one.
+ */
 function startCommunitiesPolling() {
   if (communitiesPollHandle) {
     window.clearInterval(communitiesPollHandle);
@@ -172,6 +245,13 @@ function startCommunitiesPolling() {
   }, 5000);
 }
 
+/**
+ * Polls GET /create-community/:jobId every 500ms until the job completes or fails.
+ * Updates the progress bar on each tick.
+ * @param {string} jobId - Job ID returned by POST /create-community.
+ * @param {HTMLButtonElement} button - Submit button, re-enabled on network error.
+ * @returns {Promise<object>} Resolves with the job result payload on success.
+ */
 function pollCreateJob(jobId, button) {
   return new Promise((resolve, reject) => {
     const poll = async () => {
@@ -208,6 +288,10 @@ function pollCreateJob(jobId, button) {
   });
 }
 
+/**
+ * Handles the community creation form submission.
+ * Validates input, posts to the server, polls for progress, and renders the result.
+ */
 async function createCommunity() {
   const input = document.getElementById("subreddit").value.trim();
   const output = document.getElementById("output");

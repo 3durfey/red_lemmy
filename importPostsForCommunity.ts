@@ -59,6 +59,8 @@ export async function importPostsForCommunity(
     const preparedPost = await prepareLemmyPostInput(post, jwt);
 
     if (!preparedPost) {
+      // Record permanently non-importable posts so they are not retried each cycle.
+      markPostImported(post.redditId, communityId, null);
       processedPosts += 1;
       onProgress?.({
         currentPostTitle: progressTitle,
@@ -75,11 +77,7 @@ export async function importPostsForCommunity(
         preparedPost.body,
         preparedPost.url,
       );
-      markPostImported(
-        post.redditId,
-        communityId,
-        createdPost?.id ?? null,
-      );
+      markPostImported(post.redditId, communityId, createdPost?.id ?? null);
       importedCount += 1;
     } catch (error) {
       console.error("Skipping failed post import:", {
